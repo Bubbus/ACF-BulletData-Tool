@@ -16,7 +16,7 @@ if CLIENT then
 	language.Add( "Tool.acf_bdata.listname", "ACF Bullet Data" );
 	language.Add( "Tool.acf_bdata.name", "ACF Bullet Data" );
 	language.Add( "Tool.acf_bdata.desc", "Paste bullet-data from a crate into the console." );
-	language.Add( "Tool.acf_bdata.0", "Left click a crate to paste bullet-data into the console." );
+	language.Add( "Tool.acf_bdata.0", "Left click a crate to paste bullet-data into the console.  Right click for crate mini-data." );
 
 	function TOOL.BuildCPanel( CPanel )
 	
@@ -44,8 +44,31 @@ end
 -- Update
 function TOOL:RightClick( trace )
 
-	return false;
+	if CLIENT then return end
 
+	local ent = trace.Entity;
+
+	if !IsValid( ent ) then 
+		return false;
+	end
+
+	local pl = self:GetOwner();
+
+	if( ent:GetClass() == "acf_ammo" ) then
+
+		local ArgsTable = {};
+
+		local data = self:MiniBulletData(ent)
+		
+		net.Start(SENDTBL)
+			net.WriteTable(data)
+		net.Send(pl)
+
+		ACF_SendNotify( pl, true, "Crate data sending, check console!" );
+
+	end
+
+	return true;
 end
 
 -- Copy
@@ -82,11 +105,43 @@ end
 
 
 
+function TOOL:MiniBulletData(crate)
+
+	/*
+	print("\n\nBEFORE EXPAND:\n")
+	printByName(crate.BulletData)
+	print(crate.RoundData6, crate.Data6)
+	//*/
+
+	local toconvert = {}
+	toconvert["Id"] = 			crate.RoundId
+	toconvert["Type"] = 		crate.RoundType
+	toconvert["PropLength"] = 	crate.RoundPropellant
+	toconvert["ProjLength"] = 	crate.RoundProjectile
+	toconvert["Data5"] = 		crate.RoundData5
+	toconvert["Data6"] = 		crate.RoundData6
+	toconvert["Data7"] = 		crate.RoundData7
+	toconvert["Data8"] = 		crate.RoundData8
+	toconvert["Data9"] = 		crate.RoundData9
+	toconvert["Data10"] = 		crate.RoundData10
+	toconvert["Colour"] = 		crate:GetColor()
+		
+	/*
+	print("\n\nTO EXPAND:\n")
+	printByName(toconvert)
+	//*/
+	
+	return toconvert
+
+end
+
+
+
+
 function TOOL:ExpandBulletData(crate)
 
 	/*
 	print("\n\nBEFORE EXPAND:\n")
-	printByName(bullet)
 	//*/
 
 	local toconvert = {}
@@ -107,12 +162,22 @@ function TOOL:ExpandBulletData(crate)
 	printByName(toconvert)
 	//*/
 		
+		
+	local guntable = ACF.Weapons.Guns
+	local gun = guntable[toconvert.Id] or {}
+	local roundclass = XCF.ProjClasses[gun.roundclass or "Shell"] or error("Unrecognized projectile class " .. (gun.roundclass or "Shell") .. "!")
+	toconvert.ProjClass = roundclass
+	local ret = roundclass.GetExpanded(toconvert)
+		
+		
+		--[[
 	local rounddef = ACF.RoundTypes[toconvert.Type] or error("No definition for the shell-type", bullet.Type)
 	local conversion = rounddef.convert
 	--print("rdcv", rounddef, conversion)
 	
 	if not conversion then error("No conversion available for this shell!") end
 	local ret = conversion( nil, toconvert )
+	]]--
 	
 	--ret.ProjClass = this
 	
