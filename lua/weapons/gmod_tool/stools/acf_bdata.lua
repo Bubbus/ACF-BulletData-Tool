@@ -165,19 +165,19 @@ function TOOL:ExpandBulletData(crate)
 		
 	local guntable = ACF.Weapons.Guns
 	local gun = guntable[toconvert.Id] or {}
-	local roundclass = XCF.ProjClasses[gun.roundclass or "Shell"] or error("Unrecognized projectile class " .. (gun.roundclass or "Shell") .. "!")
-	toconvert.ProjClass = roundclass
-	local ret = roundclass.GetExpanded(toconvert)
-		
-		
-		--[[
-	local rounddef = ACF.RoundTypes[toconvert.Type] or error("No definition for the shell-type", bullet.Type)
-	local conversion = rounddef.convert
-	--print("rdcv", rounddef, conversion)
+	local ret
 	
-	if not conversion then error("No conversion available for this shell!") end
-	local ret = conversion( nil, toconvert )
-	]]--
+	if XCF then
+		local roundclass = XCF.ProjClasses[gun.roundclass or "Shell"] or error("Unrecognized projectile class " .. (gun.roundclass or "Shell") .. "!")
+		toconvert.ProjClass = roundclass
+		ret = roundclass.GetExpanded(toconvert)
+	else
+		local rounddef = ACF.RoundTypes[toconvert.Type] or error("No definition for the shell-type", bullet.Type)
+		local conversion = rounddef.convert
+	
+		if not conversion then error("No conversion available for this shell!") end
+		ret = conversion( nil, toconvert )	
+	end
 	
 	--ret.ProjClass = this
 	
